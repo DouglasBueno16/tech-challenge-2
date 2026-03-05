@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: targeting_db
+      PORSTEGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: dockerfile
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: "postgres://postgres:576981@postgres:5432/targeting_db"
+      MASTER_KEY: "admin-secreto-123"
+      PORT: 8001
+  app:
+    build: ./targeting-service
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: targeting_db
+      DB_USER: postgres
+      DB_PASSWORD: password
