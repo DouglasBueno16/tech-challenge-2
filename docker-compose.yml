@@ -1,35 +1,127 @@
 services:
-  postgres:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: targeting_db
-      PORSTEGRES_DB: auth_db
-    ports:
-      - "5432:5432"
-    
+  # --- AUTH SERVICE ---
+  auth-db:
+    image: postgres:15
+    container_name: auth_db
+    env_file:
+      - ./auth-service/.env.postgres
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+      - ./auth-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"] 
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   auth-service:
     build:
       context: ./auth-service
-      dockerfile: dockerfile
+    container_name: auth-service
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    env_file:
+      - ./auth-service/.env
+    environment:
+      - DATABASE_URL=postgres://postgres:t5VXvdq7Nu3eMpk@auth_db:5432/auth_db?sslmode=disable
     ports:
       - "8001:8001"
+
+  # --- TARGETING SERVICE ---
+  targeting-db:
+    image: postgres:13
+    container_name: targeting_db
+    env_file:
+      - ./targeting-service/.env.postgres
+    volumes:
+      - targeting_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  targeting-service:
+    build:
+      context: ./targeting-service
+    container_name: targeting-service
     depends_on:
-      - postgres
+      targeting-db:
+        condition: service_healthy
+    env_file:
+      - ./targeting-service/.env
     environment:
-      DATABASE_URL: "postgres://postgres:576981@postgres:5432/targeting_db"
-      MASTER_KEY: "admin-secreto-123"
-      PORT: 8001
-  app:
-    build: ./targeting-service
+      - DATABASE_URL=postgres://postgres:2Kaoor4Y%26WP4J5o@targeting_db:5432/targeting_db?sslmode=disable
+      - AUTH_SERVICE_URL=http://auth-service:8001
     ports:
       - "8003:8003"
+
+  # --- FLAG SERVICE ---
+  flag-db:
+    image: postgres:13
+    container_name: flag_db
+    env_file:
+      - ./flag-service/.env.postgres
+    volumes:
+      - flag_db_data:/var/lib/postgresql/data
+      - ./flag-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  flag-service:
+    build:
+      context: ./flag-service
+    container_name: flag-service
     depends_on:
-      - postgres
+      flag-db:
+        condition: service_healthy
+    env_file:
+      - ./flag-service/.env
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: targeting_db
-      DB_USER: postgres
-      DB_PASSWORD: password
+      - DATABASE_URL=postgres://postgres:73p.ambHM%21644j%7D@flag_db:5432/flag_db?sslmode=disable
+      - AUTH_SERVICE_URL=http://auth-service:8001
+    ports:
+      - "8002:8002"
+
+  # --- EVALUATION SERVICE ---
+  evaluation-service:
+    build:
+      context: ./evaluation-service
+    container_name: evaluation-service
+    depends_on:
+      - redis
+    env_file:
+      - ./evaluation-service/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:8001
+    ports:
+      - "8004:8004"
+
+  # --- REDIS ---
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  # --- ANALYTICS SERVICE ---
+  analytics-service:
+    container_name: analytics-service
+    build: 
+      context: ./analytics-service
+    ports:
+      - "8005:8005"
+    env_file:
+      - ./analytics-service/.env
+    environment:
+      - AWS_REGION=us-east-1
+
+volumes:
+  auth_db_data:
+  targeting_db_data:
+  flag_db_data:

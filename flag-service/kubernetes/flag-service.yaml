@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name:  flag-service
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flag-service-deploy
+  namespace: flag-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flag-service # < - deploy ira gerenciar container com essa label Linhas 20
+  template:
+    metadata:
+      labels:
+        app: flag-service # < - tag do container
+    spec:
+      containers:
+      - name: flag-service
+        image: 396580597637.dkr.ecr.us-east-1.amazonaws.com/flag-service:latest
+        ports:
+        - containerPort: 8002 # <- apenas indica na documentação
+        envFrom:
+        - secretRef:
+            name: flag-service-secret
+        - configMapRef:
+            name: flag-service-configmap
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 10
+          periodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flag-service-service
+  namespace: flag-service
+spec:
+  selector:
+    app: flag-service
+  type: ClusterIP
+  ports:
+  - port: 8002
+    targetPort: 8002
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: flag-service-secret
+  namespace: flag-service
+type: Opaque
+data:
+  POSTGRES_USER: cG9zdGdyZXM=
+  POSTGRES_PASSWORD: #Senha correta do banco
+  POSTGRES_DB: ZmxhZ19kYg==
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flag-service-configmap
+  labels:
+    app: flag-service
+data:
+  AUTH_SERVICE_URL: http://localhost:8001
+  DATABASE_URL: # Url correta do banco
+
+

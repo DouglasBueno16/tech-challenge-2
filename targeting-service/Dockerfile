@@ -1,5 +1,5 @@
 # Build image
-FROM python:3.9-slim as builder
+FROM python:3.9-slim AS builder
 
 WORKDIR /app
 
@@ -25,5 +25,6 @@ COPY . .
 
 RUN useradd app
 USER app
+EXPOSE 8003
 
 CMD ["python", "app.py"]
