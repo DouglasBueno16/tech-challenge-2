@@ -31,7 +31,7 @@ O arquivo `docker-compose.yml` foi ajustado para expor as portas necessárias do
 ### Soluções
 
 1. Foi utilizado o python 3.9 conforme recomendado pelo `README.md`
-2. Adicionado o Werkzeug em sua versão 2.2.3 no arquivo de requirements.txt para melhor compatibilidade com o Flask
+2. Adicionado o Werkzeug em sua versão 2.2.3 no arquivo de requirements.txt para melhor compatibilidade com o Flask.
 
 ## Kubernetes
 A pasta kubernetes contém os manifests e configurações para rodar os microserviços no cluster, organizados por subpastas por serviço (analytics-service, auth-service, evaluation-service, flag-service, targeting-service). Em cada subpasta há recursos Kubernetes como Deployment, Service, Ingress, Namespace, Secret/ConfigMap e HPA quando aplicável; existem também manifests globais (namespaces, secrets, configMaps) para o conjunto do cluster. Em suma, esses arquivos descrevem como empacotar, expor e configurar os serviços no Kubernetes — e devem evitar armazenar segredos em texto plano, preferindo injeção via CI/GitHub Secrets, SealedSecrets ou um gerenciador de segredos.
